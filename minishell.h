@@ -1,56 +1,40 @@
 #ifndef MINISHELL_H
 # define MINISHELL_H
 
-
-# include "libft/libft.h"
-# include <errno.h>
+# include <stdlib.h>
+# include <unistd.h>
+# include <stdio.h>
+# include <string.h>
 # include <fcntl.h>
-# include <dirent.h>
-# include <sys/wait.h>
-# include <sys/stat.h>
-# include <sys/ioctl.h>
-# include <signal.h>
+# include <errno.h>
 # include <readline/readline.h>
 # include <readline/history.h>
-# include <termios.h>
-# include <curses.h>
-# include <term.h>
+# include "libft.h"
 
-typedef struct s_data{
-	char **env;
-} t_data;
+typedef struct s_redir
+{
+	char			*redir;
+	char			*file;
+	struct s_redir	*next;
+}	t_redir;
 
-int		ft_strcmp(char *s, char *s2);
-char	*ft_strjoin_3(char *s, char *s2, char *s3);
-char **mod_split(const char *str, char c);
-int		single_quote(const char *str, int *i);
-int		single_quote_dup(const char **str, char **tokens, int *j);
-int		double_quote(const char *str, int *i);
-int		double_quote_dup(const char **str, char **tokens, int *j);
-void	putstr_len(char *s, int fd, int len);
-void	parse_input(char *s, t_data *data);
-void	compare_inputs(char **command);
-char **reparse(char **cmd, t_data *data);
+typedef struct s_cmd
+{
+	char			**cmd;
+	t_redir			*redirections;
+	int				pipe;
+	struct s_cmd	*next;
+}	t_cmd;
 
-/**
-***		Build in commands!!!
-**/
+typedef struct s_token
+{
+	char	*token;
+	int		is_operator;
+	struct s_token	*next;
+}	t_token;
 
-void	exit_cmd(char **cmd);
-void	echo_cmd(char **cmd);
-
-/**
-***		Free Functions!!!
-**/
-
-void	free_split_exit(char **cmd);
-void	free_split(char **split);
-char	**free_tokens(char **arr, int j);
-/**
-***		Error Functions!!!
-**/
-
-void	err_msg_exit(char *s);
-void	no_closing_quote(void);
+t_token	*tokenize(const char *s);
+void	expand_token(t_token *token, char **envp);
+t_cmd	*parse_cmd_list(t_token *tokens);
 
 #endif
