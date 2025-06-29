@@ -1,29 +1,40 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_memchr.c                                        :+:      :+:    :+:   */
+/*   conv_char.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: hoale <hoale@student.hive.fi>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/10/29 17:22:00 by hoale             #+#    #+#             */
-/*   Updated: 2025/02/27 18:24:09 by hoale            ###   ########.fr       */
+/*   Created: 2024/11/15 17:28:56 by hoale             #+#    #+#             */
+/*   Updated: 2024/11/22 13:58:53 by hoale            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "libft.h"
+#include "printf.h"
 
-void	*ft_memchr(const void *s, int c, size_t n)
+void	conv_c(va_list **args, int **count)
 {
-	size_t			i;
-	unsigned char	cc;
+	ft_putchar_fd(va_arg(**args, int), 1);
+	**count += 1;
+}
 
-	cc = (unsigned char)c;
-	i = 0;
-	while (i < n)
+void	conv_percent(int **count)
+{
+	ft_putchar_fd('%', 1);
+	**count += 1;
+}
+
+void	conv_s(va_list **args, int **count)
+{
+	char	*str;
+
+	str = va_arg(**args, char *);
+	if (!str)
 	{
-		if (*(unsigned char *)(s + i) == cc)
-			return ((void *)(s + i));
-		i++ ;
+		write(1, "(null)", 6);
+		**count += 6;
+		return ;
 	}
-	return (0);
+	ft_putstr_fd(str, 1);
+	**count += ft_strlen(str);
 }

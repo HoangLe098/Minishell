@@ -1,118 +1,114 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   parsing.c                                          :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: hoale <hoale@student.hive.fi>              +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/03/20 10:17:35 by hoale             #+#    #+#             */
-/*   Updated: 2025/03/22 17:29:01 by hoale            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "minishell.h"
 
-//Check the if argument is closed by quotes
-//The integration can be applied for parsing the arguments
-int	is_closed_arg(char *start, t_data data)
+static int	is_redir_op(const char *s)
 {
-	int	i;
-	char	prev;
-	int	in_quote1;
-	int	in_quote2;
-
-	i = 0;
-	prev = ' ';
-	in_quote1 = 0;
-	in_quote2 = 0;
-	while (start[i] == ' ')
-		i++ ;
-	while (start[i] && in_quote1 != 2 && in_quote2 != 2)
-	{
-		if (start[i] == '\'' && prev != '\\' && in_quote2 == 0)
-			in_quote1++;
-		if (start[i] == '\"' && prev != '\\' && in_quote1 == 0)
-			in_quote2++;
-		if (start[i] == ' ' && prev != '\\' && in_quote1 == 0 && in_quote2 == 0)
-			break;
-		prev = start[i];
-		i++ ;
-	}
-	if (in_quote1 == 2 || in_quote2 == 2 || (in_quote1 == 0 && in_quote2 == 0))
+	if (!ft_strncmp(s, "<", 2) || !ft_strncmp(s, ">", 2)
+		|| !ft_strncmp(s, "<<", 3) || !ft_strncmp(s, ">>", 3))
 		return (1);
 	return (0);
 }
-
-//Count number of pipes in input
-int	pipe_count(char *input)
+static void	add_redir(t_redir **head, char *redir, char *file)
 {
-	int		count;
-	int		i;
-	char	prev;
+	t_redir	*new;
+	t_redir	*tmp;
 
-	i = 0;
-	count = 0;
-	prev = '|';
-	if (!input)
-		return (0);
-	while (input[i])
+	new = malloc(sizeof(t_redir));
+	if (!new)
+		return ;
+	new->redir = ft_strdup(redir);
+	new->file = ft_strdup(file);
+	new->next = NULL;
+	if (!*head)
+		*head = new;
+	else
 	{
-		if (prev == '|' && input[i] != '|')
-			count++ ;
-		prev = input[i];
-		i++ ;
+		tmp = *head;
+		while (tmp->next)
+			tmp = tmp->next;
+		tmp->next = new;
+	}
+}
+static int	count_cmd_words(t_token *cur)
+{
+	int	count;
+
+	count = 0;
+	while (cur && !(cur->is_operator && !ft_strncmp(cur->token, "|", 2)))
+	{
+		if (!cur->is_operator || !is_redir_op(cur->token))
+			count++;
+		if (cur->is_operator && is_redir_op(cur->token))
+			cur = cur->next;
+		cur = cur->next;
 	}
 	return (count);
 }
-
-
-// int token_count(char *pipe)
-// {
-// 	char	*ptr;
-// 	int		count;
-// 	char	prev;
-
-// 	if (!pipe)
-// 		return (0);
-// 	ptr = pipe;
-// 	while (ptr)
-// 	{
-// 		if (ft_strncmp(ptr, "<") == 0 || ft_strncmp(ptr, "<<") == 0)
-// 		ptr++ ;
-// 	}
-// }
-
-// int	redirect_count(char *pipe)
-// {
-// 	int	count;
-// 	char	prev;
-// 	char	next;
-// 	int	i;
-
-// 	i = 0;
-// 	while(pipe[i+1])
-// 	{
-// 		if (i != 0)
-// 			prev == pipe[i - 1];
-// 		next = pipe[i + 1];
-// 		if ((pipe[i] == '<' || pipe[i] == '>') && (prev != '<') &&)
-// 	}
-// }
-
-#include <stdio.h>
-int main(int ac, char **av, char **env)
+static char	**fill_cmd_array(t_token **cur)
 {
-	char	*input = NULL;
-	
-	while(1)
+	int		i;
+	int		count;
+	char	**cmd;
+
+	count = count_cmd_words(*cur);
+	cmd = ft_calloc(count + 1, sizeof(char *));
+	if (!cmd)
+		return (NULL);
+	i = 0;
+	while (*cur && !((*cur)->is_operator && !ft_strncmp((*cur)->token, "|", 2)))
 	{
-		input = readline("minishell$ ");
-		if(!input)
+		if ((*cur)->is_operator && is_redir_op((*cur)->token))
 		{
-			printf("control d\n");
-			break;
+			if ((*cur)->next)
+				*cur = (*cur)->next;
 		}
-		printf("%i\n", is_closed_arg(input, env));
+		else
+			cmd[i++] = ft_strdup((*cur)->token);
+		*cur = (*cur)->next;
 	}
-	return(0);
+	cmd[i] = NULL;
+	return (cmd);
+}
+t_cmd	*parse_cmd_list(t_token *tokens)
+{
+	t_cmd	*head;
+	t_cmd	*cur_cmd;
+	t_cmd	*last;
+	t_token	*cur;
+
+	head = NULL;
+	cur = tokens;
+	while (cur)
+	{
+		cur_cmd = malloc(sizeof(t_cmd));
+		if (!cur_cmd)
+			return (NULL);
+		cur_cmd->redirections = NULL;
+		cur_cmd->pipe = 0;
+		cur_cmd->next = NULL;
+		cur_cmd->cmd = fill_cmd_array(&cur);
+
+		t_token *tmp = tokens;
+		while (tmp && tmp != cur)
+		{
+			if (tmp->is_operator && is_redir_op(tmp->token)
+				&& tmp->next && !tmp->next->is_operator)
+			{
+				add_redir(&cur_cmd->redirections, tmp->token, tmp->next->token);
+				tmp = tmp->next;
+			}
+			tmp = tmp->next;
+		}
+
+		if (cur && cur->is_operator && !ft_strncmp(cur->token, "|", 2))
+		{
+			cur_cmd->pipe = 1;
+			cur = cur->next;
+		}
+		if (!head)
+			head = cur_cmd;
+		else
+			last->next = cur_cmd;
+		last = cur_cmd;
+	}
+	return (head);
 }

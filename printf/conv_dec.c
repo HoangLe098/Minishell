@@ -1,18 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_itoa.c                                          :+:      :+:    :+:   */
+/*   conv_dec.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: hoale <hoale@student.hive.fi>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/04 16:44:50 by hoale             #+#    #+#             */
-/*   Updated: 2024/11/11 13:40:56 by hoale            ###   ########.fr       */
+/*   Created: 2024/11/18 15:40:55 by hoale             #+#    #+#             */
+/*   Updated: 2024/11/22 13:22:36 by hoale            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "libft.h"
+#include "printf.h"
 
-static unsigned int	size(int n)
+static unsigned int	size_dec(int n)
 {
 	unsigned int	count;
 
@@ -32,30 +32,41 @@ static unsigned int	size(int n)
 	return (count);
 }
 
-char	*ft_itoa(int n)
+static unsigned int	unsigned_size(unsigned int n)
 {
-	char			*res;
-	unsigned int	i;
+	unsigned int	count;
 
-	if (n == -2147483648)
-		return (ft_strdup("-2147483648"));
-	i = size(n);
-	res = (char *)malloc((i + 1) * sizeof(char));
-	if (res == NULL)
-		return (NULL);
-	if (n < 0)
-	{
-		res[0] = '-';
-		n = -n;
-	}
+	count = 0;
 	if (n == 0)
-		res[0] = '0';
-	res[i] = 0;
+		return (1);
 	while (n != 0)
 	{
-		i--;
-		res[i] = ((n % 10) + 48);
 		n /= 10;
+		count++ ;
 	}
-	return (res);
+	return (count);
+}
+
+void	conv_di(va_list **args, int **count)
+{
+	int	n;
+
+	n = va_arg(**args, int);
+	ft_putnbr_fd(n, 1);
+	if (n == -2147483648)
+	{
+		**count += 11;
+		return ;
+	}
+	else
+		**count += size_dec(n);
+}
+
+void	conv_u(va_list **args, int **count)
+{
+	unsigned int	n;
+
+	n = va_arg(**args, unsigned int);
+	ft_putunsigned(n);
+	**count += unsigned_size(n);
 }
