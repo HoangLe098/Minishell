@@ -74,6 +74,7 @@ t_cmd	*parse_cmd_list(t_token *tokens)
 	t_cmd	*cur_cmd;
 	t_cmd	*last;
 	t_token	*cur;
+	t_token	*cur_save;
 
 	head = NULL;
 	cur = tokens;
@@ -85,9 +86,10 @@ t_cmd	*parse_cmd_list(t_token *tokens)
 		cur_cmd->redirections = NULL;
 		cur_cmd->pipe = 0;
 		cur_cmd->next = NULL;
+		cur_save = cur;
 		cur_cmd->cmd = fill_cmd_array(&cur);
 
-		t_token *tmp = tokens;
+		t_token *tmp = cur_save;
 		while (tmp && tmp != cur)
 		{
 			if (tmp->is_operator && is_redir_op(tmp->token)
