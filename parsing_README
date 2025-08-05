@@ -25,3 +25,30 @@ typedef struct s_token
 t_token	*tokenize(const char *s);
 void	expand_token(t_token *token, char **envp);
 t_cmd	*parse_cmd_list(t_token *tokens);
+
+
+########## Main file simulation ##########
+
+int	main(int ac, char **av, char **env)
+{
+	char	*line;
+	t_cmd	*cmd_list;
+
+	(void)ac;
+	(void)av;
+	while (1)
+	{
+		line = readline("minishell> ");
+		if (!line)
+			break ;
+		if (*line)
+			add_history(line);
+		cmd_list = parse(line, env);
+		if (cmd_list)
+		{
+			//EXECUTE
+			free_cmd_list(cmd_list);
+		}
+	}
+	return (0);
+}
