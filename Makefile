@@ -11,7 +11,8 @@ LIBFT_LIB	= -L ./libft -lft
 
 INCLUDES	= -lreadline
 
-SRCS		= tokenize.c expand.c parsing.c test_parsing.c combined_parser.c
+SRCS		= tokenize.c expand.c parsing.c test_parsing.c combined_parser.c free.c
+# SRCS		= tokenize.c test_token.c free.c
 OBJS		= $(SRCS:.c=.o)
 
 all: subsystem $(NAME)
@@ -35,6 +36,8 @@ fclean: clean
 	make -C libft/ fclean
 	make -C printf/ fclean
 	rm -f $(NAME)
+
+tidy: all clean
 
 re: fclean all
 

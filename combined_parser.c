@@ -33,9 +33,9 @@ static int valid_redirs(t_token *tokens)
 {
 	while (tokens)
 	{
-		if (tokens->is_operator && ft_strncmp(tokens->token, "|", 2) != 0)
+		if (tokens->is_operator == 1 && ft_strncmp(tokens->token, "|", 2) != 0)
 		{
-			if (!tokens->next || tokens->next->is_operator)
+			if (!tokens->next || tokens->next->is_operator == 1)
 				return (0);
 		}
 		tokens = tokens->next;
@@ -48,12 +48,12 @@ static int no_pipe_edges(t_token *tokens)
 {
 	t_token	*last;
 
-	if (tokens->is_operator && !ft_strncmp(tokens->token, "|", 2))
+	if (tokens->is_operator == 1 && !ft_strncmp(tokens->token, "|", 2))
 		return (0);
 	last = tokens;
 	while (last->next)
 		last = last->next;
-	if (last->is_operator && !ft_strncmp(last->token, "|", 2))
+	if (last->is_operator == 1 && !ft_strncmp(last->token, "|", 2))
 		return (0);
 	return (1);
 }

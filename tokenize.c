@@ -33,40 +33,59 @@ static int	add_token(t_token **head, const char *start, int len, int is_op)
 static void	process_word(const char *s, int *i, t_token **head)
 {
 	char	buf[1024];
-	int		j;
+	int		j = 0;
+	int		expand = 0;
 	char	quote;
 
-	j = 0;
 	while (s[*i] && s[*i] != ' ')
 	{
 		if (s[*i] == '\'' || s[*i] == '\"')
 		{
-			quote = s[*i];
-			(*i)++;
-			while (s[*i] && s[*i] != quote)
-				buf[j++] = s[(*i)++];
+			quote = s[(*i)++];
+			if (quote == '\"') // Allow expansion inside double quotes
+			{
+				while (s[*i] && s[*i] != quote)
+				{
+					if (s[*i] == '$')
+						expand = 1;
+					buf[j++] = s[(*i)++];
+				}
+			}
+			else // quote == '\'', no expansion
+			{
+				while (s[*i] && s[*i] != quote)
+					buf[j++] = s[(*i)++];
+			}
 			if (s[*i] == quote)
 				(*i)++;
 		}
 		else if (s[*i] == '$')
 		{
-			if (j > 0)
-			{
-				add_token(head, buf, j, 0);
-				j = 0;
-			}
+			expand = 1;
 			buf[j++] = s[(*i)++];
-			while (s[*i] && (ft_isalnum(s[*i]) || s[*i] == '_'))
-				buf[j++] = s[(*i)++];
-			add_token(head, buf, j, 0);
-			j = 0;
+
+			if (s[*i] == '\'' || s[*i] == '\"') // Preserve quote after $
+			{
+				quote = s[(*i)++];
+				buf[j++] = quote;
+				while (s[*i] && s[*i] != quote)
+					buf[j++] = s[(*i)++];
+				if (s[*i] == quote)
+					buf[j++] = s[(*i)++];
+			}
+			else
+			{
+				while (s[*i] && (ft_isalnum(s[*i]) || s[*i] == '_'))
+					buf[j++] = s[(*i)++];
+			}
 		}
 		else if (is_operator_char(s[*i]))
 		{
 			if (j > 0)
 			{
-				add_token(head, buf, j, 0);
+				add_token(head, buf, j, expand ? 2 : 0);
 				j = 0;
+				expand = 0;
 			}
 			if ((s[*i] == '<' || s[*i] == '>') && s[*i + 1] == s[*i])
 				add_token(head, &s[*i], 2, 1), (*i) += 2;
@@ -74,11 +93,62 @@ static void	process_word(const char *s, int *i, t_token **head)
 				add_token(head, &s[*i], 1, 1), (*i)++;
 		}
 		else
+		{
 			buf[j++] = s[(*i)++];
+		}
 	}
+
 	if (j > 0)
-		add_token(head, buf, j, 0);
+		add_token(head, buf, j, expand ? 2 : 0);
 }
+
+// static void	process_word(const char *s, int *i, t_token **head)
+// {
+// 	char	buf[1024];
+// 	int		j;
+
+// 	j = 0;
+// 	while (s[*i] && s[*i] != ' ')
+// 	{
+// 		if (s[*i] == '\'' || s[*i] == '\"')
+// 		{
+// 			char quote = s[(*i)++];
+// 			while (s[*i] && s[*i] != quote)
+// 				buf[j++] = s[(*i)++];
+// 			if (s[*i] == quote)
+// 				(*i)++;
+// 		}
+// 		else if (s[*i] == '$')
+// 		{
+// 			// Start a new token if buffer is not empty and followed by a space later
+// 			if (j > 0 && s[*i - 1] == ' ')
+// 			{
+// 				add_token(head, buf, j, 0);
+// 				j = 0;
+// 			}
+// 			buf[j++] = s[(*i)++];
+// 			while (s[*i] && (ft_isalnum(s[*i]) || s[*i] == '_'))
+// 				buf[j++] = s[(*i)++];
+// 		}
+// 		else if (is_operator_char(s[*i]))
+// 		{
+// 			if (j > 0)
+// 			{
+// 				add_token(head, buf, j, 0);
+// 				j = 0;
+// 			}
+// 			if ((s[*i] == '<' || s[*i] == '>') && s[*i + 1] == s[*i])
+// 				add_token(head, &s[*i], 2, 1), (*i) += 2;
+// 			else
+// 				add_token(head, &s[*i], 1, 1), (*i)++;
+// 		}
+// 		else
+// 			buf[j++] = s[(*i)++];
+// 	}
+
+// 	if (j > 0)
+// 		add_token(head, buf, j, 0);
+// }
 
 t_token	*tokenize(const char *s)
 {
