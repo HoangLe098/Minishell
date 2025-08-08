@@ -33,7 +33,8 @@ static int	count_cmd_words(t_token *cur)
 	int	count;
 
 	count = 0;
-	while (cur && cur->is_operator != 1 && !ft_strncmp(cur->token, "|", 2))
+	while (cur && (cur->is_operator != 1 || is_redir_op(cur->token)) 
+       && ft_strncmp(cur->token, "|", 2) != 0)
 	{
 		if (cur->is_operator != 1 || !is_redir_op(cur->token))
 			count++;
