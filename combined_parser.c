@@ -64,14 +64,15 @@ t_cmd	*parse(char *line, char **env)
 	t_cmd	*cmd_list;
 
 	if (is_closed_quotes(line) == 0)
-		return(write(2, "Error\n", 6), NULL);
+		return(write(2, "Error1\n", 6), NULL);
 	tokens = tokenize(line);
 	if (!valid_redirs(tokens) || !no_pipe_edges(tokens))
 	{
 		free_token(tokens);
-		return(write(2, "Error\n", 6), NULL);
+		return(write(2, "Error2\n", 6), NULL);
 	}
 	expand_token(tokens, env);
+	simplify_tokens(&tokens);
 	cmd_list = parse_cmd_list(tokens);
 	return (cmd_list);
 }

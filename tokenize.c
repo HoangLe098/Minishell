@@ -1,168 +1,195 @@
 #include "minishell.h"
 
-static int	is_operator_char(char c)
+static int	is_op_char(char c)
 {
-	return (c == '<' || c == '>' || c == '|');
+	return (c == '|' || c == '<' || c == '>');
 }
 
-static int	add_token(t_token **head, const char *start, int len, int is_op)
+static int	is_valid_var_char(char c)
 {
-	t_token	*new;
-	t_token	*tmp;
+	return (ft_isalnum((unsigned char)c) || c == '_');
+}
 
-	if (len == 0)
-		return (0);
-	new = malloc(sizeof(t_token));
-	if (!new)
-		return (0);
-	new->token = ft_substr(start, 0, len);
-	new->is_operator = is_op;
-	new->next = NULL;
+static t_token	*new_token_str(const char *s, size_t len, int is_op)
+{
+	t_token	*node;
+
+	node = malloc(sizeof(t_token));
+	if (!node)
+		return (NULL);
+	node->token = ft_substr(s, 0, len);
+	if (!node->token)
+	{
+		free(node);
+		return (NULL);
+	}
+	node->is_operator = is_op;
+	node->next = NULL;
+	return (node);
+}
+
+static void	append_token(t_token **head, t_token *node)
+{
+	t_token *tmp;
+
+	if (!node)
+		return ;
 	if (!*head)
-		*head = new;
-	else
 	{
-		tmp = *head;
-		while (tmp->next)
-			tmp = tmp->next;
-		tmp->next = new;
+		*head = node;
+		return ;
 	}
-	return (1);
+	tmp = *head;
+	while (tmp->next)
+		tmp = tmp->next;
+	tmp->next = node;
 }
 
-static void	process_word(const char *s, int *i, t_token **head)
+/* handle $<quote> or $VAR starting at s[*i] where s[*i] == '$' */
+/* outside_single indicates whether expansion is allowed (if 0 -> inside single quotes) */
+static void	handle_dollar(const char *s, int *i, t_token **head, int outside_single)
 {
-	char	buf[1024];
-	int		j = 0;
-	int		expand = 0;
-	char	quote;
+	int	start;
+	int	expand;
 
-	while (s[*i] && s[*i] != ' ')
+	start = *i;           /* '$' position */
+	(*i)++;               /* skip '$' */
+	expand = outside_single ? 2 : 0;
+
+	/* $'VAR' or $"VAR" */
+	if (s[*i] == '\'' || s[*i] == '"')
 	{
-		if (s[*i] == '\'' || s[*i] == '\"')
-		{
-			quote = s[(*i)++];
-			if (quote == '\"') // Allow expansion inside double quotes
-			{
-				while (s[*i] && s[*i] != quote)
-				{
-					if (s[*i] == '$')
-						expand = 1;
-					buf[j++] = s[(*i)++];
-				}
-			}
-			else // quote == '\'', no expansion
-			{
-				while (s[*i] && s[*i] != quote)
-					buf[j++] = s[(*i)++];
-			}
-			if (s[*i] == quote)
-				(*i)++;
-		}
-		else if (s[*i] == '$')
-		{
-			expand = 1;
-			buf[j++] = s[(*i)++];
-
-			if (s[*i] == '\'' || s[*i] == '\"') // Preserve quote after $
-			{
-				quote = s[(*i)++];
-				buf[j++] = quote;
-				while (s[*i] && s[*i] != quote)
-					buf[j++] = s[(*i)++];
-				if (s[*i] == quote)
-					buf[j++] = s[(*i)++];
-			}
-			else
-			{
-				while (s[*i] && (ft_isalnum(s[*i]) || s[*i] == '_'))
-					buf[j++] = s[(*i)++];
-			}
-		}
-		else if (is_operator_char(s[*i]))
-		{
-			if (j > 0)
-			{
-				add_token(head, buf, j, expand ? 2 : 0);
-				j = 0;
-				expand = 0;
-			}
-			if ((s[*i] == '<' || s[*i] == '>') && s[*i + 1] == s[*i])
-				add_token(head, &s[*i], 2, 1), (*i) += 2;
-			else
-				add_token(head, &s[*i], 1, 1), (*i)++;
-		}
-		else
-		{
-			buf[j++] = s[(*i)++];
-		}
+		char q = s[(*i)++];
+		while (s[*i] && s[*i] != q)
+			(*i)++;
+		if (s[*i] == q)
+			(*i)++; /* skip closing quote if present */
+		/* Safe: *i is now at \0 or after quote */
+		append_token(head, new_token_str(&s[start], *i - start, expand));
+		return;
 	}
 
-	if (j > 0)
-		add_token(head, buf, j, expand ? 2 : 0);
+	/* normal $VAR */
+	if (!is_valid_var_char(s[*i]))
+	{
+		/* nothing valid after $, treat $ as literal */
+		append_token(head, new_token_str(&s[start], 1, 0));
+		return;
+	}
+
+	while (s[*i] && is_valid_var_char(s[*i]))
+		(*i)++;
+	append_token(head, new_token_str(&s[start], *i - start, expand));
 }
 
-// static void	process_word(const char *s, int *i, t_token **head)
-// {
-// 	char	buf[1024];
-// 	int		j;
+/* handle "double quoted" section: produce token(s) for plain segments and $VAR inside */
+static void	handle_double_quote(const char *s, int *i, t_token **head)
+{
+	int	seg_start;
 
-// 	j = 0;
-// 	while (s[*i] && s[*i] != ' ')
-// 	{
-// 		if (s[*i] == '\'' || s[*i] == '\"')
-// 		{
-// 			char quote = s[(*i)++];
-// 			while (s[*i] && s[*i] != quote)
-// 				buf[j++] = s[(*i)++];
-// 			if (s[*i] == quote)
-// 				(*i)++;
-// 		}
-// 		else if (s[*i] == '$')
-// 		{
-// 			// Start a new token if buffer is not empty and followed by a space later
-// 			if (j > 0 && s[*i - 1] == ' ')
-// 			{
-// 				add_token(head, buf, j, 0);
-// 				j = 0;
-// 			}
-// 			buf[j++] = s[(*i)++];
-// 			while (s[*i] && (ft_isalnum(s[*i]) || s[*i] == '_'))
-// 				buf[j++] = s[(*i)++];
-// 		}
-// 		else if (is_operator_char(s[*i]))
-// 		{
-// 			if (j > 0)
-// 			{
-// 				add_token(head, buf, j, 0);
-// 				j = 0;
-// 			}
-// 			if ((s[*i] == '<' || s[*i] == '>') && s[*i + 1] == s[*i])
-// 				add_token(head, &s[*i], 2, 1), (*i) += 2;
-// 			else
-// 				add_token(head, &s[*i], 1, 1), (*i)++;
-// 		}
-// 		else
-// 			buf[j++] = s[(*i)++];
-// 	}
+	/* skip opening " */
+	(*i)++;
+	seg_start = *i;
+	while (s[*i] && s[*i] != '"')
+	{
+		if (s[*i] == '$')
+		{
+			/* flush preceding plain text inside the double quotes */
+			if (seg_start < *i)
+				append_token(head, new_token_str(&s[seg_start], *i - seg_start, 0));
+			/* handle $ inside double quotes (expand allowed) */
+			handle_dollar(s, i, head, 1);
+			seg_start = *i;
+			continue;
+		}
+		(*i)++;
+	}
+	if (seg_start < *i)
+		append_token(head, new_token_str(&s[seg_start], *i - seg_start, 0));
+	if (s[*i] == '"')
+		(*i)++;
+}
 
-// 	if (j > 0)
-// 		add_token(head, buf, j, 0);
-// }
+/* handle 'single quoted' section: produce one literal token (no expansion) */
+static void	handle_single_quote(const char *s, int *i, t_token **head)
+{
+	int	start;
 
+	/* skip opening ' */
+	(*i)++;
+	start = *i;
+	while (s[*i] && s[*i] != '\'')
+		(*i)++;
+	/* add literal content even if it contains $ (not expandable) */
+	if (start < *i)
+		append_token(head, new_token_str(&s[start], *i - start, 0));
+	if (s[*i] == '\'')
+		(*i)++;
+}
+
+/* handle a normal unquoted word chunk until delimiter (space, op, quote, or $) */
+static void	handle_unquoted_word(const char *s, int *i, t_token **head)
+{
+	int	start;
+
+	start = *i;
+	while (s[*i] && s[*i] != ' ' && !is_op_char(s[*i])
+		&& s[*i] != '\'' && s[*i] != '"' && s[*i] != '$')
+		(*i)++;
+	if (start < *i)
+		append_token(head, new_token_str(&s[start], *i - start, 0));
+}
+
+/* main tokenize */
 t_token	*tokenize(const char *s)
 {
-	t_token	*head;
-	int		i;
+	t_token	*head = NULL;
+	int		i = 0;
 
-	i = 0;
-	head = NULL;
 	while (s[i])
 	{
+		/* spaces outside quotes are separate tokens */
 		if (s[i] == ' ')
+		{
+			append_token(&head, new_token_str(" ", 1, 3));
 			i++;
-		else
-			process_word(s, &i, &head);
+			continue;
+		}
+		/* operators outside quotes */
+		if (is_op_char(s[i]))
+		{
+			if ((s[i] == '<' || s[i] == '>') && s[i + 1] == s[i])
+			{
+				append_token(&head, new_token_str(&s[i], 2, 1));
+				i += 2;
+			}
+			else
+			{
+				append_token(&head, new_token_str(&s[i], 1, 1));
+				i++;
+			}
+			continue;
+		}
+		/* quote handling */
+		if (s[i] == '"')
+		{
+			handle_double_quote(s, &i, &head);
+			continue;
+		}
+		if (s[i] == '\'')
+		{
+			handle_single_quote(s, &i, &head);
+			continue;
+		}
+		/* dollar outside quotes */
+		if (s[i] == '$')
+		{
+			/* outside single quotes here, so expand allowed (2) */
+			handle_dollar(s, &i, &head, 1);
+			continue;
+		}
+		/* unquoted word */
+		handle_unquoted_word(s, &i, &head);
 	}
 	return (head);
 }
