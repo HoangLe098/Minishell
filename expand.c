@@ -39,7 +39,7 @@ static void	append_char(char **dst, char c)
 	*dst = ft_strjoin_free(*dst, buf);
 }
 
-static char	*expand_node(char *input, char **envp)
+static char	*expand_node(char *input, t_data *data)
 {
 	int		i = 0;
 	int		in_single = 0;
@@ -54,14 +54,24 @@ static char	*expand_node(char *input, char **envp)
 			in_double = !in_double;
 		else if (input[i] == '$' && !in_single && input[i + 1])
 		{
-			int		start = ++i;
-			while (input[i] && is_valid_var_char(input[i]))
-				i++;
-			char	*key = ft_substr(input, start, i - start);
-			char	*val = get_env_value(key, envp);
-			result = ft_strjoin_free(result, val);
-			free(key);
-			i--;
+			if (input[i + 1] == '?')
+			{
+				char *val = ft_itoa(data->status);
+				result = ft_strjoin_free(result, val);
+				free(val);
+				i += 1;
+			}
+			else
+			{
+				int start = ++i;
+				while (input[i] && is_valid_var_char(input[i]))
+					i++;
+				char *key = ft_substr(input, start, i - start);
+				char *val = get_env_value(key, data->env);
+				result = ft_strjoin_free(result, val);
+				free(key);
+				i--;
+			}
 		}
 		else
 			append_char(&result, input[i]);
@@ -86,7 +96,7 @@ static int	has_dollar(char *s)
 	return (0);
 }
 
-void	expand_token(t_token *token, char **envp)
+void	expand_token(t_token *token, t_data *data)
 {
 	t_token	*cur;
 	char	*expanded;
@@ -96,7 +106,7 @@ void	expand_token(t_token *token, char **envp)
 	{
 		if (has_dollar(cur->token) && cur->is_operator == 2)
 		{
-			expanded = expand_node(cur->token, envp);
+			expanded = expand_node(cur->token, data->env);
 			free(cur->token);
 			cur->token = expanded;
 		}
