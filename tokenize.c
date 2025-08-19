@@ -45,7 +45,7 @@ static void	append_token(t_token **head, t_token *node)
 	tmp->next = node;
 }
 
-/* handle $<quote> or $VAR starting at s[*i] where s[*i] == '$' */
+/* handle $<quote>, $VAR, or $? starting at s[*i] where s[*i] == '$' */
 /* outside_single indicates whether expansion is allowed (if 0 -> inside single quotes) */
 static void	handle_dollar(const char *s, int *i, t_token **head, int outside_single)
 {
@@ -56,6 +56,14 @@ static void	handle_dollar(const char *s, int *i, t_token **head, int outside_sin
 	(*i)++;               /* skip '$' */
 	expand = outside_single ? 2 : 0;
 
+	/* special case: $? */
+	if (s[*i] == '?')
+	{
+		(*i)++; /* skip '?' */
+		append_token(head, new_token_str(&s[start], *i - start, expand));
+		return;
+	}
+
 	/* $'VAR' or $"VAR" */
 	if (s[*i] == '\'' || s[*i] == '"')
 	{
@@ -64,7 +72,6 @@ static void	handle_dollar(const char *s, int *i, t_token **head, int outside_sin
 			(*i)++;
 		if (s[*i] == q)
 			(*i)++; /* skip closing quote if present */
-		/* Safe: *i is now at \0 or after quote */
 		append_token(head, new_token_str(&s[start], *i - start, expand));
 		return;
 	}
@@ -87,25 +94,26 @@ static void	handle_double_quote(const char *s, int *i, t_token **head)
 {
 	int	seg_start;
 
-	/* skip opening " */
-	(*i)++;
+	(*i)++; /* skip opening " */
 	seg_start = *i;
 	while (s[*i] && s[*i] != '"')
 	{
 		if (s[*i] == '$')
 		{
-			/* flush preceding plain text inside the double quotes */
 			if (seg_start < *i)
 				append_token(head, new_token_str(&s[seg_start], *i - seg_start, 0));
-			/* handle $ inside double quotes (expand allowed) */
 			handle_dollar(s, i, head, 1);
 			seg_start = *i;
 			continue;
 		}
 		(*i)++;
 	}
-	if (seg_start < *i)
+
+	if (seg_start < *i) /* there was content between quotes */
 		append_token(head, new_token_str(&s[seg_start], *i - seg_start, 0));
+	else if (s[*i] == '"') /* nothing inside -> empty string token */
+		append_token(head, new_token_str("", 0, 0));
+
 	if (s[*i] == '"')
 		(*i)++;
 }
@@ -115,14 +123,16 @@ static void	handle_single_quote(const char *s, int *i, t_token **head)
 {
 	int	start;
 
-	/* skip opening ' */
-	(*i)++;
+	(*i)++; /* skip opening ' */
 	start = *i;
 	while (s[*i] && s[*i] != '\'')
 		(*i)++;
-	/* add literal content even if it contains $ (not expandable) */
-	if (start < *i)
+
+	if (start < *i) /* content inside single quotes */
 		append_token(head, new_token_str(&s[start], *i - start, 0));
+	else if (s[*i] == '\'') /* empty '' -> empty string token */
+		append_token(head, new_token_str("", 0, 0));
+
 	if (s[*i] == '\'')
 		(*i)++;
 }
