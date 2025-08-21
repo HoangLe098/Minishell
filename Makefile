@@ -11,8 +11,8 @@ LIBFT_LIB	= -L ./libft -lft
 
 INCLUDES	= -lreadline
 
-SRCS		= tokenize.c expand.c merge_token.c parsing.c test_parsing.c combined_parser.c free.c
-# SRCS		= tokenize.c test_token.c free.c
+SRCS		= tokenize.c tokenize_sub.c tokenize_dollar.c tokenize_qnd.c expand.c expand_sub.c merge_token.c parsing.c parsing_sub.c combined_parser.c free.c test_parsing.c
+# SRCS		= tokenize.c tokenize_sub.c tokenize_dollar.c tokenize_qnd.c test_token.c free.c merge_token.c
 OBJS		= $(SRCS:.c=.o)
 
 all: subsystem $(NAME)

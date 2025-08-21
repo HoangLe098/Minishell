@@ -1,23 +1,18 @@
 #include "minishell.h"
 
-static char	*ft_strjoin_free(char *s1, char *s2)
+void	append_char(char **dst, char c)
 {
-	char	*res;
-	
-	res = ft_strjoin(s1, s2);
-	free(s1);
-	return (res);
+	char	buf[2];
+
+	buf[0] = c;
+	buf[1] = '\0';
+	*dst = ft_strjoin_free(*dst, buf);
 }
 
-static int	is_valid_var_char(char c)
+char	*get_env_value(char *key, char **envp)
 {
-	return (ft_isalnum(c) || c == '_');
-}
-
-static char	*get_env_value(char *key, char **envp)
-{
-	int		i;
-	int		len;
+	int	i;
+	int	len;
 
 	len = ft_strlen(key);
 	i = 0;
@@ -28,56 +23,6 @@ static char	*get_env_value(char *key, char **envp)
 		i++;
 	}
 	return ("");
-}
-
-static void	append_char(char **dst, char c)
-{
-	char	buf[2];
-
-	buf[0] = c;
-	buf[1] = '\0';
-	*dst = ft_strjoin_free(*dst, buf);
-}
-
-static char	*expand_node(char *input, t_data *data)
-{
-	int		i = 0;
-	int		in_single = 0;
-	int		in_double = 0;
-	char	*result = ft_strdup("");
-
-	while (input[i])
-	{
-		if (input[i] == '\'' && !in_double)
-			in_single = !in_single;
-		else if (input[i] == '"' && !in_single)
-			in_double = !in_double;
-		else if (input[i] == '$' && !in_single && input[i + 1])
-		{
-			if (input[i + 1] == '?')
-			{
-				char *val = ft_itoa(data->status);
-				result = ft_strjoin_free(result, val);
-				free(val);
-				i += 1;
-			}
-			else
-			{
-				int start = ++i;
-				while (input[i] && is_valid_var_char(input[i]))
-					i++;
-				char *key = ft_substr(input, start, i - start);
-				char *val = get_env_value(key, data->env);
-				result = ft_strjoin_free(result, val);
-				free(key);
-				i--;
-			}
-		}
-		else
-			append_char(&result, input[i]);
-		i++;
-	}
-	return (result);
 }
 
 static int	has_dollar(char *s)
@@ -96,32 +41,40 @@ static int	has_dollar(char *s)
 	return (0);
 }
 
-void	expand_token(t_token **token, t_data *data)
+static int	expand_and_maybe_remove(t_token **tokens, t_token **cur, t_token **prev, t_data *data)
 {
-	t_token	*cur = *token;
-	t_token	*prev = NULL;
 	char	*expanded;
+	t_token	*to_delete;
 
+	if (!has_dollar((*cur)->token) || (*cur)->is_operator != 2)
+		return (0);
+	expanded = expand_node((*cur)->token, data);
+	free((*cur)->token);
+	(*cur)->token = expanded;
+	if ((*cur)->token[0] != '\0')
+		return (0);
+	to_delete = *cur;
+	if (*prev)
+		(*prev)->next = (*cur)->next;
+	else
+		*tokens = (*cur)->next;
+	*cur = (*cur)->next;
+	free(to_delete->token);
+	free(to_delete);
+	return (1);
+}
+
+void	expand_token(t_token **tokens, t_data *data)
+{
+	t_token	*cur;
+	t_token	*prev;
+
+	cur = *tokens;
+	prev = NULL;
 	while (cur)
 	{
-		if (has_dollar(cur->token) && cur->is_operator == 2)
-		{
-			expanded = expand_node(cur->token, data);
-			free(cur->token);
-			cur->token = expanded;
-			if (cur->token[0] == '\0')
-			{
-				t_token *to_delete = cur;
-				if (prev)
-					prev->next = cur->next;
-				else
-					*token = cur->next;
-				cur = cur->next;
-				free(to_delete->token);
-				free(to_delete);
-				continue;
-			}
-		}
+		if (expand_and_maybe_remove(tokens, &cur, &prev, data))
+			continue;
 		prev = cur;
 		cur = cur->next;
 	}

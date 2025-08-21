@@ -66,8 +66,6 @@ int	main(int ac, char **av, char **env)
 			continue ;
 		}
 		print_tokens(tokens);
-		simplify_tokens(&tokens);
-		print_tokens(tokens);
 		free_token(tokens);
 		cmd_list = parse(line, env);
 		if (cmd_list)
