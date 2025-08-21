@@ -96,20 +96,34 @@ static int	has_dollar(char *s)
 	return (0);
 }
 
-void	expand_token(t_token *token, t_data *data)
+void	expand_token(t_token **token, t_data *data)
 {
-	t_token	*cur;
+	t_token	*cur = *token;
+	t_token	*prev = NULL;
 	char	*expanded;
 
-	cur = token;
 	while (cur)
 	{
 		if (has_dollar(cur->token) && cur->is_operator == 2)
 		{
-			expanded = expand_node(cur->token, data->env);
+			expanded = expand_node(cur->token, data);
 			free(cur->token);
 			cur->token = expanded;
+			if (cur->token[0] == '\0')
+			{
+				t_token *to_delete = cur;
+				if (prev)
+					prev->next = cur->next;
+				else
+					*token = cur->next;
+				cur = cur->next;
+				free(to_delete->token);
+				free(to_delete);
+				continue;
+			}
 		}
+		prev = cur;
 		cur = cur->next;
 	}
 }
+

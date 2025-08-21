@@ -90,7 +90,7 @@ t_cmd	*parse(char *line, char **env)
 		free_token(tokens);
 		return(write(2, "Error2\n", 6), NULL);
 	}
-	expand_token(tokens, env);
+	expand_token(&tokens, env);
 	simplify_tokens(&tokens);
 	cmd_list = parse_cmd_list(tokens);
 	return (cmd_list);

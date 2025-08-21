@@ -34,7 +34,7 @@ typedef struct s_token
 }	t_token;
 
 t_token	*tokenize(const char *s);
-void	expand_token(t_token *token, char **envp);
+void	expand_token(t_token **token, char **envp);
 void	simplify_tokens(t_token **head);
 t_cmd	*parse_cmd_list(t_token *tokens);
 void 	free_token(t_token *head);
