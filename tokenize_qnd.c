@@ -21,6 +21,8 @@ static void	tokenize_double_quote(const char *s, int *i, t_token **head)
 	}
 	if (seg_start < *i)
 		append_token(head, new_token_str(&s[seg_start], *i - seg_start, 0));
+	else if (s[*i] == '"')
+		append_token(head, new_token_str("", 0, 0));
 	if (s[*i] == '"')
 		(*i)++;
 }
@@ -36,6 +38,8 @@ static void	tokenize_single_quote(const char *s, int *i, t_token **head)
 		(*i)++;
 	if (start < *i)
 		append_token(head, new_token_str(&s[start], *i - start, 0));
+	else if (s[*i] == '\'')
+		append_token(head, new_token_str("", 0, 0));
 	if (s[*i] == '\'')
 		(*i)++;
 }
