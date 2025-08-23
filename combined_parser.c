@@ -1,6 +1,6 @@
 #include "minishell.h"
 
-static int is_closed_quotes(char *cmd)
+static int	is_closed_quotes(char *cmd)
 {
 	int		is_closed;
 	char	*ptr;
@@ -21,7 +21,7 @@ static int is_closed_quotes(char *cmd)
 			is_closed++ ;
 			quote = 'a';
 		}
-			ptr++ ;
+		ptr++ ;
 	}
 	if (is_closed % 2 == 0)
 		return (1);
@@ -29,13 +29,18 @@ static int is_closed_quotes(char *cmd)
 		return (0);
 }
 
-static int valid_redirs(t_token *tokens)
+static int	valid_redirs(t_token *tokens)
 {
+	t_token	*ptr;
+
 	while (tokens)
 	{
-		if (tokens->is_operator == 1 && ft_strncmp(tokens->token, "|", 2) != 0)
+		if (tokens->is_op == 1 && ft_strncmp(tokens->token, "|", 2) != 0)
 		{
-			if (!tokens->next || tokens->next->is_operator == 1)
+			ptr = tokens->next;
+			while (ptr && ptr->is_op == 3)
+				ptr = ptr->next;
+			if (!ptr || ptr->is_op == 1)
 				return (0);
 		}
 		tokens = tokens->next;
@@ -44,21 +49,21 @@ static int valid_redirs(t_token *tokens)
 }
 
 //Check if there is no pipe operator at begin and the end of the list
-static int no_pipe_edges(t_token *tokens)
+static int	no_pipe_edges(t_token *tokens)
 {
 	t_token	*last;
 
-	if (tokens->is_operator == 1 && !ft_strncmp(tokens->token, "|", 2))
+	if (tokens->is_op == 1 && !ft_strncmp(tokens->token, "|", 2))
 		return (0);
 	last = tokens;
 	while (last->next)
 		last = last->next;
-	if (last->is_operator == 1 && !ft_strncmp(last->token, "|", 2))
+	if (last->is_op == 1 && !ft_strncmp(last->token, "|", 2))
 		return (0);
 	return (1);
 }
 
-static int below_max_heredoc(t_token *tokens)
+static int	below_max_heredoc(t_token *tokens)
 {
 	t_token	*ptr;
 	int		count_heredoc;
@@ -67,7 +72,7 @@ static int below_max_heredoc(t_token *tokens)
 	count_heredoc = 0;
 	while (ptr->next)
 	{
-		if (ptr->is_operator == 1 && ft_strncmp(ptr->token, ">>", 3) == 0)
+		if (ptr->is_op == 1 && ft_strncmp(ptr->token, ">>", 3) == 0)
 			count_heredoc++ ;
 		ptr = ptr->next;
 	}
@@ -83,15 +88,19 @@ t_cmd	*parse(char *line, char **env)
 	t_cmd	*cmd_list;
 
 	if (is_closed_quotes(line) == 0)
-		return(write(2, "Error1\n", 6), NULL);
+		return (write(2, "Error1\n", 7), NULL);
 	tokens = tokenize(line);
-	if (!valid_redirs(tokens) || !no_pipe_edges(tokens) || !below_max_heredoc(tokens))
+	if (!tokens)
+		return (NULL);
+	if (!valid_redirs(tokens) || !no_pipe_edges(tokens)
+		|| !below_max_heredoc(tokens))
 	{
 		free_token(tokens);
-		return(write(2, "Error2\n", 6), NULL);
+		return (write(2, "Error2\n", 7), NULL);
 	}
 	expand_token(&tokens, env);
 	simplify_tokens(&tokens);
 	cmd_list = parse_cmd_list(tokens);
+	free_token(tokens);
 	return (cmd_list);
 }

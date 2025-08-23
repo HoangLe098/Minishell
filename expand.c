@@ -1,12 +1,15 @@
 #include "minishell.h"
 
-void	append_char(char **dst, char c)
+int	append_char(char **dst, char c)
 {
 	char	buf[2];
 
 	buf[0] = c;
 	buf[1] = '\0';
 	*dst = ft_strjoin_free(*dst, buf);
+	if (!(*dst))
+		return (-1);
+	return (1);
 }
 
 char	*get_env_value(char *key, char **envp)
@@ -41,14 +44,17 @@ static int	has_dollar(char *s)
 	return (0);
 }
 
-static int	expand_and_maybe_remove(t_token **tokens, t_token **cur, t_token **prev, t_data *data)
+static int	expand_and_maybe_remove(t_token **tokens, t_token **cur,
+	t_token **prev, t_data *data)
 {
 	char	*expanded;
 	t_token	*to_delete;
 
-	if (!has_dollar((*cur)->token) || (*cur)->is_operator != 2)
+	if (!has_dollar((*cur)->token) || (*cur)->is_op != 2)
 		return (0);
 	expanded = expand_node((*cur)->token, data);
+	if (!expanded)
+		return (-1);
 	free((*cur)->token);
 	(*cur)->token = expanded;
 	if ((*cur)->token[0] != '\0')
@@ -68,15 +74,22 @@ void	expand_token(t_token **tokens, t_data *data)
 {
 	t_token	*cur;
 	t_token	*prev;
+	int		ret;
 
 	cur = *tokens;
 	prev = NULL;
 	while (cur)
 	{
-		if (expand_and_maybe_remove(tokens, &cur, &prev, data))
-			continue;
+		ret = expand_and_maybe_remove(tokens, &cur, &prev, data);
+		if (ret == -1)
+		{
+			free_token(*tokens);
+			tokens = NULL;
+			return ;
+		}
+		else if (ret)
+			continue ;
 		prev = cur;
 		cur = cur->next;
 	}
 }
-

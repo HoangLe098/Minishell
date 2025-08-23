@@ -28,7 +28,7 @@ static void	print_cmd_list(t_cmd *cmd_list)
 		}
 		else
 			printf("  Cmd: (null)\n");
-		print_redirections(cmd_list->redirections);
+		print_redirections(cmd_list->redirs);
 		cmd_list = cmd_list->next;
 	}
 	printf("\n");
@@ -38,7 +38,7 @@ static void	print_tokens(t_token *head)
 {
 	while (head)
 	{
-		printf("[%s] (%d)\n", head->token, head->is_operator);
+		printf("[%s] (%d)\n", head->token, head->is_op);
 		head = head->next;
 	}	
 	printf("\n");

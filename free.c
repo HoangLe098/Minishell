@@ -2,7 +2,8 @@
 
 static void	free_cmd(t_cmd *cmd)
 {
-	int i;
+	int		i;
+	t_redir	*tmp;
 
 	if (!cmd)
 		return ;
@@ -13,10 +14,10 @@ static void	free_cmd(t_cmd *cmd)
 			free(cmd->cmd[i++]);
 		free(cmd->cmd);
 	}
-	while (cmd->redirections)
+	while (cmd->redirs)
 	{
-		t_redir *tmp = cmd->redirections;
-		cmd->redirections = cmd->redirections->next;
+		tmp = cmd->redirs;
+		cmd->redirs = cmd->redirs->next;
 		free(tmp->redir);
 		free(tmp->file);
 		free(tmp);
@@ -26,7 +27,7 @@ static void	free_cmd(t_cmd *cmd)
 
 void	free_cmd_list(t_cmd *head)
 {
-	t_cmd *tmp;
+	t_cmd	*tmp;
 
 	while (head)
 	{
@@ -36,9 +37,9 @@ void	free_cmd_list(t_cmd *head)
 	}
 }
 
-void free_token(t_token *head)
+void	free_token(t_token *head)
 {
-	t_token *tmp;
+	t_token	*tmp;
 
 	while (head != NULL)
 	{
@@ -51,13 +52,13 @@ void free_token(t_token *head)
 
 int	is_valid_var_char(char c)
 {
-	return (ft_isalnum(c) || c == '_');
+	return (ft_isalnum(c) || c == '_' || c == '$');
 }
 
 char	*ft_strjoin_free(char *s1, char *s2)
 {
 	char	*res;
-	
+
 	res = ft_strjoin(s1, s2);
 	free(s1);
 	return (res);
