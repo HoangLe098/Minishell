@@ -5,7 +5,7 @@ static void	print_redirections(t_redir *redir)
 {
 	while (redir)
 	{
-		printf("  Redirection: %s %s\n", redir->redir, redir->file);
+		printf("  Redirection: [%s] [%s] (%i)\n", redir->redir, redir->file, redir->expand);
 		redir = redir->next;
 	}
 }
@@ -49,9 +49,14 @@ int	main(int ac, char **av, char **env)
 	char	*line;
 	t_token	*tokens;
 	t_cmd	*cmd_list;
+	t_data	*data;
 
 	(void)ac;
 	(void)av;
+	data = malloc(sizeof(t_data));
+	if (!data)
+		return (1);
+	data->env = env;
 	while (1)
 	{
 		line = readline("minishell> ");
@@ -66,8 +71,11 @@ int	main(int ac, char **av, char **env)
 			continue ;
 		}
 		print_tokens(tokens);
-		free_token(tokens);
-		cmd_list = parse(line, env);
+		expand_token(&tokens, data);
+		print_tokens(tokens);
+		simplify_tokens(&tokens);
+		print_tokens(tokens);
+		cmd_list = parse(line, data);
 		if (cmd_list)
 		{
 			print_cmd_list(cmd_list);

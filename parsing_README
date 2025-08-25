@@ -34,9 +34,9 @@ int		is_op_char(char c);
 t_token	*new_tok(const char *s, size_t len, int is_op);
 int		append_token(t_token **head, t_token *node);
 int		tokenize_dollar_status(t_dollar_ctx *ctx, int start);
-int		tokenize_dollar(const char *s, int *i, t_token **head, int out_single);
-int		tokenize_quotes_or_dollar(const char *s, int *i, t_token **head);
-t_token	*tokenize(const char *s);
+int		tokenize_dollar(t_dollar_ctx *ctx, int out_single);
+int		tokenize_quotes_or_dollar(t_dollar_ctx *ctx);
+t_token	*tokenize(char *s);
 char	*ft_strjoin_free(char *s1, char *s2);
 int		append_char(char **dst, char c);
 char	*get_env_value(char *key, char **envp);
@@ -48,7 +48,7 @@ char	**fill_cmd_array(t_token **cur);
 t_cmd	*parse_cmd_list(t_token *tokens);
 void	free_token(t_token *head);
 void	free_cmd_list(t_cmd *head);
-t_cmd	*parse(char *line, char **env);
+t_cmd	*parse(char *line, t_data *data);
 
 ########## Main file simulation ##########
 
@@ -56,9 +56,14 @@ int	main(int ac, char **av, char **env)
 {
 	char	*line;
 	t_cmd	*cmd_list;
+	t_data	*data;
 
 	(void)ac;
 	(void)av;
+	data = malloc(sizeof(t_data));
+	if (!data)
+		return (1);
+	data->env = env;
 	while (1)
 	{
 		line = readline("minishell> ");
@@ -66,7 +71,7 @@ int	main(int ac, char **av, char **env)
 			break ;
 		if (*line)
 			add_history(line);
-		cmd_list = parse(line, env);
+		cmd_list = parse(line, data);
 		if (cmd_list)
 		{
 			//EXECUTE

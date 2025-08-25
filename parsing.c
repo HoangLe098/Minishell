@@ -54,7 +54,10 @@ t_cmd	*parse_cmd_list(t_token *tokens)
 	{
 		cur_cmd = build_single_cmd(&cur);
 		if (!cur_cmd)
+		{
+			free_cmd_list(head);
 			return (NULL);
+		}
 		if (!head)
 			head = cur_cmd;
 		else

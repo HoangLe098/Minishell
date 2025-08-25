@@ -82,7 +82,7 @@ static int	below_max_heredoc(t_token *tokens)
 		return (1);
 }
 
-t_cmd	*parse(char *line, char **env)
+t_cmd	*parse(char *line, t_data *data)
 {
 	t_token	*tokens;
 	t_cmd	*cmd_list;
@@ -98,9 +98,11 @@ t_cmd	*parse(char *line, char **env)
 		free_token(tokens);
 		return (write(2, "Error2\n", 7), NULL);
 	}
-	expand_token(&tokens, env);
+	expand_token(&tokens, data);
 	simplify_tokens(&tokens);
 	cmd_list = parse_cmd_list(tokens);
 	free_token(tokens);
+	if (!cmd_list)
+		return (NULL);
 	return (cmd_list);
 }

@@ -22,8 +22,7 @@ SRCS		= tokenize.c \
 		parsing_sub.c \
 		combined_parser.c \
 		free.c \
-		# expand_test.c \
-		# test_parsing.c \
+		test_parsing.c \
 
 OBJS		= $(SRCS:.c=.o)
 

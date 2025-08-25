@@ -8,7 +8,7 @@ static int	is_redir_op(const char *s)
 	return (0);
 }
 
-static int	add_redir(t_redir **head, char *redir, char *file)
+static int	add_redir(t_redir **head, char *redir, char *file, int expand)
 {
 	t_redir	*new;
 	t_redir	*tmp;
@@ -16,6 +16,7 @@ static int	add_redir(t_redir **head, char *redir, char *file)
 	new = malloc(sizeof(t_redir));
 	if (!new)
 		return (-1);
+	new->expand = expand;
 	new->redir = ft_strdup(redir);
 	new->file = ft_strdup(file);
 	if (!new->redir || !new->file)
@@ -60,7 +61,14 @@ int	fill_redirections(t_cmd *cmd, t_token *start, t_token *end)
 		if (tmp->is_op == 1 && is_redir_op(tmp->token)
 			&& tmp->next && tmp->next->is_op != 1)
 		{
-			if (add_redir(&cmd->redirs, tmp->token, tmp->next->token) == -1)
+			if (!ft_strncmp(tmp->token, "<<", 3) && tmp->next->is_op == 4)
+			{
+				if (add_redir(&cmd->redirs,
+						tmp->token, tmp->next->token, 1) == -1)
+					return (-1);
+			}
+			else if (add_redir(&cmd->redirs,
+					tmp->token, tmp->next->token, 0) == -1)
 				return (-1);
 			tmp = tmp->next;
 		}
